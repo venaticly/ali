@@ -19,15 +19,34 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            position: relative;
         }
 
-        .container {
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        .game-container {
             text-align: center;
             animation: fadeIn 2s ease-out;
+            position: relative;
+            z-index: 10;
         }
 
         .message {
-            font-size: 4rem;
+            font-size: 3rem;
             color: white;
             text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
             margin-bottom: 2rem;
@@ -35,11 +54,95 @@
             letter-spacing: 0.1em;
         }
 
-        .heart {
-            font-size: 8rem;
+        .main-heart {
+            font-size: 6rem;
             color: white;
             text-shadow: 0 0 40px rgba(255, 255, 255, 0.6);
             animation: heartbeat 2s infinite;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+
+        .main-heart:hover {
+            transform: scale(1.1);
+        }
+
+        .score {
+            color: white;
+            font-size: 1.5rem;
+            margin-top: 1rem;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .instruction {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .falling-heart {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 2rem;
+            pointer-events: none;
+            animation: fall 2s ease-in-out forwards;
+            z-index: 5;
+        }
+
+        .collected-heart {
+            position: absolute;
+            color: #ffeb3b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            animation: float-collect 4s infinite ease-in-out;
+            z-index: 8;
+        }
+
+        .collected-heart:hover {
+            transform: scale(1.2);
+        }
+
+        .love-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .love-message h3 {
+            color: #ff6b9d;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .love-message p {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .close-btn {
+            background: #ff6b9d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
 
         @keyframes fadeIn {
@@ -58,24 +161,220 @@
                 transform: scale(1);
             }
             50% {
-                transform: scale(1.1);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes fall {
+            from {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes float-collect {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
             }
         }
 
         @media (max-width: 768px) {
             .message {
-                font-size: 2.5rem;
+                font-size: 2rem;
             }
-            .heart {
-                font-size: 5rem;
+            .main-heart {
+                font-size: 4rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="stars" id="stars"></div>
+    
+    <div class="game-container">
         <div class="message">Te quiero Alicia</div>
-        <div class="heart">♥</div>
+        <div class="main-heart" id="mainHeart" onclick="clickHeart()">♥</div>
+        <div class="score">Corazones: <span id="score">0</span></div>
+        <div class="instruction">✨</div>
     </div>
+
+    <div class="love-message" id="loveMessage">
+        <h3>💕 ¡Increíble! 💕</h3>
+        <p id="messageText">¡Has creado mucho amor! Eres maravillosa, Alicia 💖</p>
+        <button class="close-btn" onclick="closeLoveMessage()">Cerrar</button>
+    </div>
+
+    <script>
+        let score = 0;
+        let collectedHearts = [];
+
+        // Create twinkling stars
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Heart clicking game
+        function clickHeart() {
+            score++;
+            document.getElementById('score').textContent = score;
+            
+            // Create falling hearts
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    createFallingHeart();
+                }, i * 100);
+            }
+
+            // Special messages at certain scores
+            if (score === 10) {
+                showLoveMessage("Poncho es mi novio💕");
+            } else if (score === 25) {
+                showLoveMessage("Te quieroooooasidjkasdiajdiasd🌟");
+            } else if (score === 50) {
+                showLoveMessage("hola");
+            } else if (score === 100) {
+                showLoveMessage("jaja");
+            }
+
+            // Create collectible hearts occasionally
+            if (score % 5 === 0) {
+                createCollectibleHeart();
+            }
+        }
+
+        function createFallingHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'falling-heart';
+            heart.innerHTML = '♥';
+            heart.style.left = (Math.random() * 80 + 10) + '%';
+            heart.style.top = '40%';
+            document.body.appendChild(heart);
+
+            setTimeout(() => {
+                heart.remove();
+            }, 2000);
+        }
+
+        function createCollectibleHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'collected-heart';
+            heart.innerHTML = '💛';
+            heart.style.left = (Math.random() * 70 + 15) + '%';
+            heart.style.top = (Math.random() * 50 + 20) + '%';
+            heart.onclick = () => collectSpecialHeart(heart);
+            document.body.appendChild(heart);
+
+            // Remove after 8 seconds if not clicked
+            setTimeout(() => {
+                if (heart.parentNode) {
+                    heart.remove();
+                }
+            }, 8000);
+        }
+
+        function collectSpecialHeart(heart) {
+            score += 5;
+            document.getElementById('score').textContent = score;
+            
+            // Create sparkle effect
+            for (let i = 0; i < 5; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.innerHTML = '✨';
+                sparkle.style.position = 'absolute';
+                sparkle.style.left = heart.style.left;
+                sparkle.style.top = heart.style.top;
+                sparkle.style.color = 'gold';
+                sparkle.style.fontSize = '1rem';
+                sparkle.style.pointerEvents = 'none';
+                sparkle.style.animation = 'sparkle 1s ease-out forwards';
+                document.body.appendChild(sparkle);
+
+                setTimeout(() => sparkle.remove(), 1000);
+            }
+
+            heart.remove();
+            showLoveMessage("¡Corazón especial! +5 puntos de amor 💛");
+        }
+
+        function showLoveMessage(text) {
+            document.getElementById('messageText').textContent = text;
+            document.getElementById('loveMessage').style.display = 'block';
+        }
+
+        function closeLoveMessage() {
+            document.getElementById('loveMessage').style.display = 'none';
+        }
+
+        // Initialize
+        createStars();
+
+        // Add sparkle animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes sparkle {
+                from { 
+                    opacity: 1; 
+                    transform: translateY(0) scale(1) rotate(0deg); 
+                }
+                to { 
+                    opacity: 0; 
+                    transform: translateY(-30px) scale(0.3) rotate(360deg); 
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Ambient floating hearts
+        setInterval(() => {
+            if (Math.random() > 0.7) {
+                const ambientHeart = document.createElement('div');
+                ambientHeart.innerHTML = '♡';
+                ambientHeart.style.position = 'absolute';
+                ambientHeart.style.left = Math.random() * 100 + '%';
+                ambientHeart.style.top = '100%';
+                ambientHeart.style.color = 'rgba(255, 255, 255, 0.3)';
+                ambientHeart.style.fontSize = '1.5rem';
+                ambientHeart.style.pointerEvents = 'none';
+                ambientHeart.style.animation = 'float-up 6s linear forwards';
+                document.body.appendChild(ambientHeart);
+
+                setTimeout(() => ambientHeart.remove(), 6000);
+            }
+        }, 2000);
+
+        // Add float-up animation
+        const floatStyle = document.createElement('style');
+        floatStyle.textContent = `
+            @keyframes float-up {
+                from { 
+                    transform: translateY(0) rotate(0deg);
+                    opacity: 0.3;
+                }
+                50% {
+                    opacity: 0.6;
+                }
+                to { 
+                    transform: translateY(-100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(floatStyle);
+    </script>
 </body>
 </html>
